@@ -27,10 +27,14 @@
 int width, height;
 
 GLuint programId;
+GLuint programId2;
+
 GLuint vertexBuffer;
 GLuint indexBuffer;
+
 GLenum positionBufferId;
 GLuint positions_vbo = 0;
+
 GLuint textureCoords_vbo = 0;
 GLuint normals_vbo = 0;
 GLuint colours_vbo = 0;
@@ -201,6 +205,61 @@ void drawHead(glm::mat4 model_matrix) {
 	glDisableVertexAttribArray(textureCoordsAttribId);
 	glDisableVertexAttribArray(normalAttribId);
 }
+
+void drawHead2(glm::mat4 model_matrix) {
+	// model-view-projection matrix
+	glm::mat4 mvp = projection * view * model_matrix;
+	GLuint mvpMatrixId = glGetUniformLocation(programId2, "u_MVPMatrix");
+	glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
+
+	// model-view matrix
+	glm::mat4 mv = view * model_matrix;
+	GLuint mvMatrixId = glGetUniformLocation(programId2, "u_MVMatrix");
+	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
+	// the position of our light
+	GLuint lightPosId = glGetUniformLocation(programId2, "u_LightPos");
+	glUniform3f(lightPosId,1, 8 + lightOffsetY, -2);
+	// the position of our camera/eye
+	GLuint eyePosId = glGetUniformLocation(programId2, "u_EyePosition");
+	glUniform3f(eyePosId, eyePosition.x, eyePosition.y, eyePosition.z);
+
+	// the colour of our object
+	GLuint diffuseColourId = glGetUniformLocation(programId2, "u_DiffuseColour");
+	glUniform4f(diffuseColourId, 1.0, 1.0, 1.0, 1.0);
+
+	// the shininess of the object's surface
+	GLuint shininessId = glGetUniformLocation(programId2, "u_Shininess");
+	glUniform1f(shininessId, 25);
+
+	// find the names (ids) of each vertex attribute
+	GLint positionAttribId = glGetAttribLocation(programId2, "position");
+	GLint textureCoordsAttribId = glGetAttribLocation(programId2, "textureCoords");
+	GLint normalAttribId = glGetAttribLocation(programId2, "normal");
+
+	// provide the vertex positions to the shaders
+	glBindBuffer(GL_ARRAY_BUFFER, positions_vbo);
+	glEnableVertexAttribArray(positionAttribId);
+	glVertexAttribPointer(positionAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	// provide the vertex texture coordinates to the shaders
+	glBindBuffer(GL_ARRAY_BUFFER, textureCoords_vbo);
+	glEnableVertexAttribArray(textureCoordsAttribId);
+	glVertexAttribPointer(textureCoordsAttribId, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	// provide the vertex normals to the shaders
+	glBindBuffer(GL_ARRAY_BUFFER, normals_vbo);
+	glEnableVertexAttribArray(normalAttribId);
+	glVertexAttribPointer(normalAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	// draw the triangles
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
+
+	// disable the attribute arrays
+	glDisableVertexAttribArray(positionAttribId);
+	glDisableVertexAttribArray(textureCoordsAttribId);
+	glDisableVertexAttribArray(normalAttribId);
+}
 static void render(void) {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -211,9 +270,6 @@ static void render(void) {
    glEnable(GL_DEPTH_TEST);
 
    // projection matrix - perspective projection
-   // FOV:           45°
-   // Aspect ratio:  4:3 ratio
-   // Z range:       between 0.1 and 100.0
    float aspectRatio = (float)width / (float)height;
    projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 1000.0f);
 
@@ -225,23 +281,27 @@ static void render(void) {
    );
 
 
-   createTexture("textures/earth.jpg");
+   createTexture("textures/sun.jpg");
    // model matrix: translate, scale, and rotate the model
    glm::vec3 rotationAxis(0,1,0);
    glm::mat4 model = glm::mat4(1.0f);
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
-   drawHead(model);
-   createTexture("textures/sun.jpg");
-   //createTexture("textures/earth.jpg");
+   model = glm::scale(model, glm::vec3(2*scaleFactor, 2*scaleFactor, 2*scaleFactor));
+
+   drawHead(model, colour);
+
+
+	glUseProgram(programId2);
+
+
    model = glm::translate(model, glm::vec3(scaleFactor * 0.5, 0.0f, 0.0));
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(scaleFactor/ 7, scaleFactor / 7, scaleFactor / 7));
-   drawHead(model);
+   drawHead2(model);
 
    model = glm::mat4(1.0f);
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
@@ -254,7 +314,8 @@ static void render(void) {
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(scaleFactor / 8, scaleFactor / 8, scaleFactor / 8));
 
-   drawHead(model);
+   drawHead2(model);
+
 	// make the draw buffer to display buffer (i.e. display what we have drawn)
 	glutSwapBuffers();
 
@@ -325,10 +386,17 @@ int main(int argc, char** argv) {
 
    createGeometry();
 
+	// this creates program that uses the phong shader
    ShaderProgram program;
    program.loadShaders("shaders/phong_vertex.glsl", "shaders/phong_fragment.glsl");
 
   	programId = program.getProgramId();
+   
+	// this creates program that uses the gouraud shader
+   ShaderProgram program2;
+   program2.loadShaders("shaders/gouraud_vertex.glsl", "shaders/gouraud_fragment.glsl");
+
+  	programId2 = program2.getProgramId();
 
    glutMainLoop();
 
