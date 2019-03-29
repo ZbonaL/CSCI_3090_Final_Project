@@ -13,16 +13,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-
+#include <glm/gtc/quaternion.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "apis/stb_image.h"
 
-
+#include "trackball.hpp"
 #include "ShaderProgram.h"
 #include "ObjMesh.h"
-
-#define SCALE_FACTOR 2.0f
 
 int width, height;
 
@@ -47,9 +45,9 @@ float lightOffsetY = 0.0f;
 glm::vec3 eyePosition(40, 30, 30);
 bool animateLight = false;
 bool rotateObject = true;
-float scaleFactor = 5.0f;
-float lastX = std::numeric_limits<float>::infinity();
-float lastY = std::numeric_limits<float>::infinity();
+// float scaleFactor = 5.0f;
+// float lastX = std::numeric_limits<float>::infinity();
+// float lastY = std::numeric_limits<float>::infinity();
 
 glm::mat4 viewMatrix;
 glm::mat4 projMatrix;
@@ -139,7 +137,7 @@ static void update(void) {
    // move the light position over time along the x-axis, so we can see how it affects the shading
    if (animateLight) {
       float t = milliseconds / 1000.0f;
-      lightOffsetY = sinf(t) * 100;
+      lightOffsetY = cos(t) * 100;
    }
 
    glutPostRedisplay();
@@ -196,7 +194,6 @@ void drawHead(glm::mat4 model_matrix) {
 	// draw the triangles
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 	glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
-
 	// disable the attribute arrays
 	glDisableVertexAttribArray(positionAttribId);
 	glDisableVertexAttribArray(textureCoordsAttribId);
@@ -217,7 +214,7 @@ void drawHead2(glm::mat4 model_matrix,   glm::vec4 colour ) {
 	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
 	// the position of our light
 	GLuint lightPosId = glGetUniformLocation(programId2, "u_LightPos");
-	glUniform3f(lightPosId, -100 ,100,0);
+	glUniform3f(lightPosId, 0, 25 * scaleFactor + lightOffsetY, -2);
 	// the position of our camera/eye
 	GLuint eyePosId = glGetUniformLocation(programId2, "u_EyePosition");
 	glUniform3f(eyePosId, eyePosition.x, eyePosition.y, eyePosition.z);
@@ -228,7 +225,7 @@ void drawHead2(glm::mat4 model_matrix,   glm::vec4 colour ) {
 
 	// the shininess of the object's surface
 	GLuint shininessId = glGetUniformLocation(programId2, "u_Shininess");
-	glUniform1f(shininessId, 10);
+	glUniform1f(shininessId, 200);
 
 	// find the names (ids) of each vertex attribute
 	GLint positionAttribId = glGetAttribLocation(programId2, "position");
@@ -259,11 +256,9 @@ void drawHead2(glm::mat4 model_matrix,   glm::vec4 colour ) {
 	glDisableVertexAttribArray(textureCoordsAttribId);
 	glDisableVertexAttribArray(normalAttribId);
 }
+
 static void render(void) {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-   
-
    // turn on depth buffering
    glEnable(GL_DEPTH_TEST);
 
@@ -281,7 +276,7 @@ static void render(void) {
    createTexture("textures/sun.jpg");
 
    //vector for rotation
-   glm::vec3 rotationAxis(0,1,0);
+//    glm::vec3 rotationAxis(0,1,0);
 
    glm::mat4 model = glm::mat4(1.0f);
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
@@ -342,9 +337,9 @@ static void render(void) {
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(scaleFactor/4, scaleFactor/4, scaleFactor/4));
-	glm::vec4 white = glm::vec4(glm::vec3( 1.0, 1.0, 1.0),1.0 );
+	glm::vec4 grey = glm::vec4(glm::vec3( 1.0, 1.0, 1.0),1.0 );
 
-   drawHead2(model, white);
+   drawHead2(model, grey);
 
 	// make the draw buffer to display buffer (i.e. display what we have drawn)
 	glutSwapBuffers();
@@ -356,30 +351,6 @@ static void reshape(int w, int h) {
 
    width = w;
    height = h;
-}
-
-static void drag(int x, int y) {
-   if (!isinf(lastX) && !isinf(lastY)) {
-      float dx = lastX - (float)x;
-      float dy = lastY - (float)y;
-      float distance = sqrt(dx * dx + dy * dy);
-
-      if (dy > 0.0f) {
-         scaleFactor = SCALE_FACTOR / distance;
-      } else {
-         scaleFactor = distance / SCALE_FACTOR;
-      }
-   } else {
-      lastX = (float)x;
-      lastY = (float)y;
-   }
-}
-
-static void mouse(int button, int state, int x, int y) {
-   if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-      lastX = std::numeric_limits<float>::infinity();
-      lastY = std::numeric_limits<float>::infinity();
-   }
 }
 
 static void keyboard(unsigned char key, int x, int y) {
