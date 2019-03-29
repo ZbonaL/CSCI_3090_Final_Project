@@ -15,4 +15,5 @@
     
 # Citations:
   - Code used from Lecture 10 and and Lab 6
+  - Also used the trackball.hp from Lecture 11b_TextureMapping_SkyBox_QuaternionTrackball
   
