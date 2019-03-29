@@ -97,6 +97,7 @@ static void createTexture(std::string filename) {
 
 // this function loads in the head obj
 static void createGeometry(void) {
+	// load in head object
    ObjMesh mesh;
    mesh.load("meshes/newHead.obj", true, true);
 
@@ -147,12 +148,12 @@ static void update(void) {
 // THis function is used to draw the main head in the center
 // also inplements the phong shader
 void drawHead(glm::mat4 model_matrix) {
-	// model-viewMatrix-projMatrix matrix
+	// headModel-viewMatrix-projMatrix matrix
 	glm::mat4 mvp = projMatrix * viewMatrix * model_matrix;
 	GLuint mvpMatrixId = glGetUniformLocation(programId, "u_MVPMatrix");
 	glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
 
-	// model-viewMatrix matrix
+	// headModel-viewMatrix matrix
 	glm::mat4 mv = viewMatrix * model_matrix;
 	GLuint mvMatrixId = glGetUniformLocation(programId, "u_MVMatrix");
 	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
@@ -203,12 +204,12 @@ void drawHead(glm::mat4 model_matrix) {
 //This function is used to draw all the other heads
 // This functions uses a gouraud shader.
 void drawHead2(glm::mat4 model_matrix,   glm::vec4 colour ) {
-	// model-viewMatrix-projMatrix matrix
+	// headModel-viewMatrix-projMatrix matrix
 	glm::mat4 mvp = projMatrix * viewMatrix * model_matrix;
 	GLuint mvpMatrixId = glGetUniformLocation(programId2, "u_MVPMatrix");
 	glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
 
-	// model-viewMatrix matrix
+	// headModel-viewMatrix matrix
 	glm::mat4 mv = viewMatrix * model_matrix;
 	GLuint mvMatrixId = glGetUniformLocation(programId2, "u_MVMatrix");
 	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
@@ -276,70 +277,73 @@ static void render(void) {
    createTexture("textures/sun.jpg");
 
    //vector for rotation
-//    glm::vec3 rotationAxis(0,1,0);
 
-   glm::mat4 model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(2*scaleFactor, 2*scaleFactor, 2*scaleFactor));
+	// build main head
+   glm::mat4 headModel = glm::mat4(1.0f);
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(2*scaleFactor, 2*scaleFactor, 2*scaleFactor));
 
-   drawHead(model);
+   drawHead(headModel);
 
    // tell program to use the goaraud shader
 	glUseProgram(programId2);
 
-   model = glm::translate(model, glm::vec3(scaleFactor * 0.5, 0.0f, 0.0));
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor/ 7, scaleFactor / 7, scaleFactor / 7));
+	
+   headModel = glm::translate(headModel, glm::vec3(scaleFactor * 0.5, 0.0f, 0.0));
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor/ 7, scaleFactor / 7, scaleFactor / 7));
 	glm::vec4 blue = glm::vec4(glm::vec3(0.0,0.0,1.0),1.0 );
 
-   drawHead2(model, blue);
+   drawHead2(headModel, blue);
 
-   model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle + 100), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
-   model = glm::translate(model, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor / 8, scaleFactor / 8, scaleFactor / 8));
+	// build red head
+   headModel = glm::mat4(1.0f);
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle + 100), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   headModel = glm::translate(headModel, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor / 8, scaleFactor / 8, scaleFactor / 8));
 	glm::vec4 red = glm::vec4(glm::vec3(1.0,0.0,0.0),1.0 );
 
-   drawHead2(model, red);
+   drawHead2(headModel, red);
 
-	model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle + 1000), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
-   model = glm::translate(model, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor/3, scaleFactor/3, scaleFactor/3));
+	// build green head
+	headModel = glm::mat4(1.0f);
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle + 1000), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   headModel = glm::translate(headModel, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor/3, scaleFactor/3, scaleFactor/3));
 	glm::vec4 green = glm::vec4(glm::vec3(.0,1.0,0.0),1.0 );
 
-   drawHead2(model, green);
+   drawHead2(headModel, green);
 
-
-	model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle + 2000), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
-   model = glm::translate(model, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
-   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
-   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
-   model = glm::scale(model, glm::vec3(scaleFactor/4, scaleFactor/4, scaleFactor/4));
+	// build grey head
+	headModel = glm::mat4(1.0f);
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle + 2000), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   headModel = glm::translate(headModel, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
+   headModel = glm::rotate(headModel, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   headModel = glm::rotate(headModel, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   headModel = glm::rotate(headModel, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   headModel = glm::scale(headModel, glm::vec3(scaleFactor/4, scaleFactor/4, scaleFactor/4));
 	glm::vec4 grey = glm::vec4(glm::vec3( 1.0, 1.0, 1.0),1.0 );
 
-   drawHead2(model, grey);
+   drawHead2(headModel, grey);
 
 	// make the draw buffer to display buffer (i.e. display what we have drawn)
 	glutSwapBuffers();
