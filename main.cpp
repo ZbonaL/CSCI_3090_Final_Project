@@ -51,8 +51,8 @@ float scaleFactor = 5.0f;
 float lastX = std::numeric_limits<float>::infinity();
 float lastY = std::numeric_limits<float>::infinity();
 
-glm::mat4 view;
-glm::mat4 projection;
+glm::mat4 viewMatrix;
+glm::mat4 projMatrix;
 float xAngle = 0.0f;
 float yAngle = 0.0f;
 float zAngle = 0.0f;
@@ -78,18 +78,12 @@ static void createTexture(std::string filename) {
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
 	// specify the functions to use when shrinking/enlarging the texture image
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
 	// specify the tiling parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	// send the data to OpenGL
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, imageWidth, imageHeight,
@@ -103,7 +97,7 @@ static void createTexture(std::string filename) {
 	stbi_image_free(bitmap);
 }
 
-
+// this function loads in the head obj
 static void createGeometry(void) {
    ObjMesh mesh;
    mesh.load("meshes/newHead.obj", true, true);
@@ -151,14 +145,17 @@ static void update(void) {
    glutPostRedisplay();
 }
 
+
+// THis function is used to draw the main head in the center
+// also inplements the phong shader
 void drawHead(glm::mat4 model_matrix) {
-	// model-view-projection matrix
-	glm::mat4 mvp = projection * view * model_matrix;
+	// model-viewMatrix-projMatrix matrix
+	glm::mat4 mvp = projMatrix * viewMatrix * model_matrix;
 	GLuint mvpMatrixId = glGetUniformLocation(programId, "u_MVPMatrix");
 	glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
 
-	// model-view matrix
-	glm::mat4 mv = view * model_matrix;
+	// model-viewMatrix matrix
+	glm::mat4 mv = viewMatrix * model_matrix;
 	GLuint mvMatrixId = glGetUniformLocation(programId, "u_MVMatrix");
 	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
 	// the position of our light
@@ -174,7 +171,7 @@ void drawHead(glm::mat4 model_matrix) {
 
 	// the shininess of the object's surface
 	GLuint shininessId = glGetUniformLocation(programId, "u_Shininess");
-	glUniform1f(shininessId, 25);
+	glUniform1f(shininessId, 45);
 
 	// find the names (ids) of each vertex attribute
 	GLint positionAttribId = glGetAttribLocation(programId, "position");
@@ -206,30 +203,32 @@ void drawHead(glm::mat4 model_matrix) {
 	glDisableVertexAttribArray(normalAttribId);
 }
 
-void drawHead2(glm::mat4 model_matrix) {
-	// model-view-projection matrix
-	glm::mat4 mvp = projection * view * model_matrix;
+//This function is used to draw all the other heads
+// This functions uses a gouraud shader.
+void drawHead2(glm::mat4 model_matrix,   glm::vec4 colour ) {
+	// model-viewMatrix-projMatrix matrix
+	glm::mat4 mvp = projMatrix * viewMatrix * model_matrix;
 	GLuint mvpMatrixId = glGetUniformLocation(programId2, "u_MVPMatrix");
 	glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
 
-	// model-view matrix
-	glm::mat4 mv = view * model_matrix;
+	// model-viewMatrix matrix
+	glm::mat4 mv = viewMatrix * model_matrix;
 	GLuint mvMatrixId = glGetUniformLocation(programId2, "u_MVMatrix");
 	glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
 	// the position of our light
 	GLuint lightPosId = glGetUniformLocation(programId2, "u_LightPos");
-	glUniform3f(lightPosId,1, 8 + lightOffsetY, -2);
+	glUniform3f(lightPosId, -100 ,100,0);
 	// the position of our camera/eye
 	GLuint eyePosId = glGetUniformLocation(programId2, "u_EyePosition");
 	glUniform3f(eyePosId, eyePosition.x, eyePosition.y, eyePosition.z);
 
 	// the colour of our object
 	GLuint diffuseColourId = glGetUniformLocation(programId2, "u_DiffuseColour");
-	glUniform4f(diffuseColourId, 1.0, 1.0, 1.0, 1.0);
+	glUniform4f(diffuseColourId, colour.x, colour.y, colour.z, colour.w);
 
 	// the shininess of the object's surface
 	GLuint shininessId = glGetUniformLocation(programId2, "u_Shininess");
-	glUniform1f(shininessId, 25);
+	glUniform1f(shininessId, 10);
 
 	// find the names (ids) of each vertex attribute
 	GLint positionAttribId = glGetAttribLocation(programId2, "position");
@@ -263,45 +262,46 @@ void drawHead2(glm::mat4 model_matrix) {
 static void render(void) {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   // activate our shader program
-	glUseProgram(programId);
+   
 
    // turn on depth buffering
    glEnable(GL_DEPTH_TEST);
 
-   // projection matrix - perspective projection
+   // projMatrix matrix - perspective projMatrix
    float aspectRatio = (float)width / (float)height;
-   projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 1000.0f);
+   projMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 1000.0f);
 
-   // view matrix - orient everything around our preferred view
-   view = glm::lookAt(
-      eyePosition,
-      glm::vec3(0,0,0),    // where to look
-      glm::vec3(0,1,0)     // up
-   );
+   //view matrix
+   viewMatrix = glm::lookAt(eyePosition, glm::vec3(0,0,0),glm::vec3(0,1,0));
 
+   // make program phong shader
+	glUseProgram(programId);
 
+   // use sun texture on the center head
    createTexture("textures/sun.jpg");
-   // model matrix: translate, scale, and rotate the model
+
+   //vector for rotation
    glm::vec3 rotationAxis(0,1,0);
+
    glm::mat4 model = glm::mat4(1.0f);
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(2*scaleFactor, 2*scaleFactor, 2*scaleFactor));
 
-   drawHead(model, colour);
+   drawHead(model);
 
-
+   // tell program to use the goaraud shader
 	glUseProgram(programId2);
-
 
    model = glm::translate(model, glm::vec3(scaleFactor * 0.5, 0.0f, 0.0));
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(scaleFactor/ 7, scaleFactor / 7, scaleFactor / 7));
-   drawHead2(model);
+	glm::vec4 blue = glm::vec4(glm::vec3(0.0,0.0,1.0),1.0 );
+
+   drawHead2(model, blue);
 
    model = glm::mat4(1.0f);
    model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
@@ -313,14 +313,41 @@ static void render(void) {
    model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
    model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
    model = glm::scale(model, glm::vec3(scaleFactor / 8, scaleFactor / 8, scaleFactor / 8));
+	glm::vec4 red = glm::vec4(glm::vec3(1.0,0.0,0.0),1.0 );
 
-   drawHead2(model);
+   drawHead2(model, red);
+
+	model = glm::mat4(1.0f);
+   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   model = glm::rotate(model, glm::radians(yAngle + 1000), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   model = glm::translate(model, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
+   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   model = glm::scale(model, glm::vec3(scaleFactor/3, scaleFactor/3, scaleFactor/3));
+	glm::vec4 green = glm::vec4(glm::vec3(.0,1.0,0.0),1.0 );
+
+   drawHead2(model, green);
+
+
+	model = glm::mat4(1.0f);
+   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   model = glm::rotate(model, glm::radians(yAngle + 2000), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   model = glm::translate(model, glm::vec3(scaleFactor * 1, 0.0f, 0.0));
+   model = glm::rotate(model, glm::radians(xAngle), glm::vec3(1, 0, 0)); // rotate about the x-axis
+   model = glm::rotate(model, glm::radians(yAngle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+   model = glm::rotate(model, glm::radians(zAngle), glm::vec3(0, 0, 1)); // rotate about the z-axis
+   model = glm::scale(model, glm::vec3(scaleFactor/4, scaleFactor/4, scaleFactor/4));
+	glm::vec4 white = glm::vec4(glm::vec3( 1.0, 1.0, 1.0),1.0 );
+
+   drawHead2(model, white);
 
 	// make the draw buffer to display buffer (i.e. display what we have drawn)
 	glutSwapBuffers();
-
-
-
 
 }
 
@@ -364,11 +391,13 @@ static void keyboard(unsigned char key, int x, int y) {
    }
 }
 
+
+
 int main(int argc, char** argv) {
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
    glutInitWindowSize(800, 600);
-   glutCreateWindow("CSCI 4110u Shading in OpenGL");
+   glutCreateWindow("CSCI 3090u Final Project");
    glutIdleFunc(&update);
    glutDisplayFunc(&render);
    glutReshapeFunc(&reshape);
