@@ -1,5 +1,5 @@
 # CSCI_3090_Final_Project
-## We did paired programming for this project.
+- We did paired programming for this project.
 
 # Group:
  1. Leonard Zbona
